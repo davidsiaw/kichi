@@ -2,7 +2,27 @@
 
 Kichi is a simple commandline tool to manage application secrets for your applications using AWS.
 
-To test different environments with different environment variables that contain sensitive information, it is a pain to keep having to export them, and sending them over chat programs to colleagues just makes it less secure.
+Often you have shell scripts like:
+
+```
+USERNAME=mytzypdlk \
+PASSWORD=aliceinwonderland1923 \
+SENDGRID_USER=koouser \
+SENDGRID_PASSWORD=koolpassword \
+bash deploy.sh
+```
+
+Which are your base things.
+
+Sometimes you might even commit them by accident.
+
+To test different environments with different environment variables that contain sensitive information, it is a pain to keep having to export them, and keeping files and updating them with your secrets around is a manual step no one needs to have. Even worse, sending them over chat programs and giving third parties access to your info.
+
+Kichi reduces this to:
+
+	$ kichi in my_env run bash deploy.sh
+
+And you can provide your colleagues with AWS keys access to your secrets bucket and have them run this instead, without having to send secrets to them over third party services.
 
 ## Installation
 
@@ -26,18 +46,26 @@ To use kichi with an S3 bucket, you need to have your aws credentials set up wit
 
 	$ kichi use s3
 
-To use kichi with a directory
-
-	$ kichi use path ~/secrets_directory --passphrase
-
 To set environment variables
 
 	$ kichi set USERNAME pikachu
 	$ kichi set PASSWORD youwashock
 
+To view environment variables
+
+	$ kichi get USERNAME
+
 To set files
 
-	$ kichi file options.ini
+	$ kichi cp key.pem PRIVATE_KEY
+
+> when you set a file, the env var will come up as PRIVATE_KEY_PATH. This env var will be your path to the actual file that was downloaded
+
+To get files
+
+	$ kichi dl PRIVATE_KEY
+
+> this will download to a file called PRIVATE_KEY on your current directory.
 
 To create a new environment
 
@@ -45,13 +73,14 @@ To create a new environment
 
 To add environment variables to an environment
 
-	$ kichi add USERNAME PASSWORD to my_env
+	$ kichi add USERNAME my_env
+	$ kichi add PASSWORD my_env
 
 To add a file to an environment
 
-	$ kichi add options.ini to my_env
+	$ kichi addfile PRIVATE_KEY my_env
 
-To list objects in an environment
+To list the variable names in an environment
 
 	$ kichi list my_env
 
@@ -59,23 +88,17 @@ To run a program using an environment
 
 	$ kichi in my_env run ./server
 
-To delete an environment variable
 
-	$ kichi unset USERNAME
+## Kichi
 
-To delete a file
-
-	$ kichi rm options.ini
-
-To delete an environment
-
-	$ kichi delete my_env
+Kichi means "base" as in "military base" in Japanese. I chose the word because military bases generally have lots of secrets.
 
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
 
 To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+
 
 ## Contributing
 

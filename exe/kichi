@@ -4,23 +4,11 @@ require "kichi"
 require "aws-sdk-core"
 require "yaml"
 require "fileutils"
+require 'shellwords'
+
+module Kichi
 
 subcommand = ARGV.shift
-
-class Kichi
-	def initialize(settings)
-		@settings = settings
-		@s3 = Aws::S3::Client.new
-	end
-
-	def s3
-		@s3
-	end
-
-	def set_var(var_name, var_content)
-		s3.put_object(bucket: settings[:s3_bucket], key: 'object-key', body: {type: "envvar"}.to_json)
-	end
-end
 
 class Commands
 	def initialize
@@ -46,7 +34,7 @@ class Commands
 			end
 
 			FileUtils.mkdir_p @settings_dir
-			File.write(File.join(@settings_dir, "settings"), {s3_bucket: bucket_name}.to_json)
+			File.write(File.join(@settings_dir, "settings"), {s3_bucket: bucket_name}.to_yaml)
 
 		else
 			puts "Unknown store '#{what}'"
@@ -55,36 +43,101 @@ class Commands
 
 	def set
 		var_name = ARGV.shift
-		var_content = ARGV.shift
+		var_content = ARGV.join(" ")
 		kichi.set_var(var_name, var_content)
 	end
 
+	def get
+		var_name = ARGV.shift
+		var_content = kichi.get_var(var_name)
+		puts "#{var_name}=#{Shellwords.escape(var_content)}"
+	end
+
 	def create
-		puts "nyan"
+		var_name = ARGV.shift
+		kichi.create_env(var_name)
 	end
 
 	def add
-		puts "nyan"
+		var_name = ARGV.shift
+		env_name = ARGV.shift
+		alias_name = ARGV.shift
+		kichi.add_to_env(env_name, var_name, alias_name)
+	end
+
+	def addfile
+		var_name = ARGV.shift
+		env_name = ARGV.shift
+		alias_name = ARGV.shift
+		kichi.add_to_env(env_name, var_name, alias_name, true)
+	end
+
+	def remove
+		var_name = ARGV.shift
+		env_name = ARGV.shift
+		kichi.remove_from_env(env_name, var_name)
 	end
 	
 	def list
-		puts "nyan"
+		env_name = ARGV.shift
+		kichi.get_env(env_name).each do |k,v|
+			if v[:type] == :file
+				if v[:alias]
+					puts "#{v[:alias]} (#{k}_PATH)"
+				else
+					puts "#{k}_PATH"
+				end
+			else
+				if v[:alias]
+					puts "#{v[:alias]} (#{k})"
+				else
+					puts "#{k}"
+				end
+			end
+		end
 	end
 
 	def in
-		puts "nyan"
+		env_name = ARGV.shift
+		action = ARGV.shift
+		if action != "run"
+			throw "Expected run command after env_name"
+		end
+		file_dir = File.join(@settings_dir, "files")
+		FileUtils.mkdir_p file_dir
+		envs = kichi.get_env(env_name).map do |k,v|
+			key = k
+			if v[:type] == :envvar
+				value = kichi.get_var(k)
+				if v[:alias]
+					key = v[:alias]
+				end
+				[key, value]
+			elsif v[:type] == :file
+				contents = kichi.download(k)
+				location = File.join(file_dir, k)
+				File.write(location, contents)
+				if v[:alias]
+					key = v[:alias]
+				end
+				["#{key}_PATH", location]
+
+			end
+		end.to_h
+		exec(envs, ARGV.join(" "))
 	end
 
-	def unset
-		puts "nyan"
+	def cp
+		filename = ARGV.shift
+		var_name = ARGV.shift
+		kichi.upload(var_name, filename)
 	end
 
-	def rm
-		puts "nyan"
-	end
-
-	def delete
-		puts "nyan"
+	def dl
+		var_name = ARGV.shift
+		content = kichi.download(var_name)
+		File.write(var_name, content)
+		puts "File saved to #{var_name}"
 	end
 
 	def method_missing(name,*args,&block)
@@ -94,13 +147,15 @@ class Commands
 	private
 
 	def kichi
-		if !File.exists(File.join(@settings_dir, "settings"))
+		if !File.exists?(File.join(@settings_dir, "settings"))
 			puts "Please setup kichi by calling kichi use s3"
 			exit!
 		end
-		settings = JSON.parse(File.read(File.join(@settings_dir, "settings")))
+		settings = YAML.load_file(File.join(@settings_dir, "settings"))
 		Kichi.new settings
 	end
 end
 
 Commands.new.send(:"#{subcommand}")
+
+end
