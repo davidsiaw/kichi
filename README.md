@@ -54,6 +54,7 @@ To set environment variables
 To view environment variables
 
 	$ kichi get USERNAME
+	USERNAME=pikachu
 
 To set files
 
@@ -64,8 +65,7 @@ To set files
 To get files
 
 	$ kichi dl PRIVATE_KEY
-
-> this will download to a file called PRIVATE_KEY on your current directory.
+	File saved in PRIVATE_KEY
 
 To create a new environment
 
@@ -83,6 +83,9 @@ To add a file to an environment
 To list the variable names in an environment
 
 	$ kichi list my_env
+	USERNAME
+	PASSWORD
+	PRIVATE_KEY_PATH
 
 To run a program using an environment
 
