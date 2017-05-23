@@ -12,7 +12,7 @@ SENDGRID_PASSWORD=koolpassword \
 bash deploy.sh
 ```
 
-Which are your base things.
+Which are your important scripts to deploy your important services.
 
 Sometimes you might even commit them by accident.
 
