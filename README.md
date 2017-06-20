@@ -75,6 +75,11 @@ To add environment variables to an environment
 
 	$ kichi add USERNAME my_env
 	$ kichi add PASSWORD my_env
+	
+To add environment variables to an environment with a different name
+
+	$ kichi add USERNAME my_env USER
+	$ kichi add PASSWORD my_env PASS
 
 To add a file to an environment
 
